@@ -1,5 +1,13 @@
 # NOTES
 
+## 2026-10-02 (Phase 3)
+- LLM cleanup step using OpenAI chat completions (gpt-4.1-mini by default).
+- System prompt instructs: fix punctuation/caps, remove filler words, correct vocab spelling, never add content.
+- CleanupConfig exposes `config` property so cache fingerprint captures model/URL.
+- Eval harness runs each engine both raw and with cleanup when OPENAI_API_KEY is set.
+- `dictate transcribe --cleanup` flag for CLI usage.
+- Note: gpt-4.1-nano scheduled for shutdown 2026-10-23; using gpt-4.1-mini instead.
+
 ## 2026-10-02 (Phase 2)
 - Eval harness: scorer (WER via jiwer, vocab accuracy), cache (JSON per clip/engine/config), harness runner, report formatter.
 - Cache keyed by `{clip_id}_{engine}_{fingerprint}.json` where fingerprint is a 12-char SHA-256 of engine config + vocab + cleanup config — rerunning scoring makes zero API calls; changing any of those invalidates the cache.

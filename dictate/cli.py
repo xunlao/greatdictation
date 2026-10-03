@@ -3,6 +3,10 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 import click
 
@@ -25,7 +29,10 @@ def main() -> None:
     help="STT engine to use.",
 )
 @click.option("--vocab-file", type=click.Path(exists=True, path_type=Path), default=None)
-def transcribe(audio_file: Path, engine: str, vocab_file: Path | None) -> None:
+@click.option("--cleanup", "use_cleanup", is_flag=True, help="Run LLM cleanup on the result.")
+def transcribe(
+    audio_file: Path, engine: str, vocab_file: Path | None, use_cleanup: bool
+) -> None:
     """Transcribe an audio file."""
     env_var = ENGINE_KEYS[engine]
     api_key = os.environ.get(env_var, "")
@@ -41,7 +48,18 @@ def transcribe(audio_file: Path, engine: str, vocab_file: Path | None) -> None:
     eng = get_engine(engine, api_key=api_key)
     result = pipeline_transcribe(audio, engine=eng, vocab=vocab)
 
-    click.echo(result.text)
+    if use_cleanup:
+        from dictate.core.cleanup import cleanup as run_cleanup
+
+        openai_key = os.environ.get("OPENAI_API_KEY", "")
+        if not openai_key:
+            click.echo("Error: OPENAI_API_KEY required for --cleanup.", err=True)
+            sys.exit(1)
+        result_text = run_cleanup(result.text, api_key=openai_key, vocab=vocab)
+    else:
+        result_text = result.text
+
+    click.echo(result_text)
 
 
 @main.command(name="eval")
@@ -99,6 +117,14 @@ def eval_cmd(
         click.echo("No engines selected and no API keys found in environment.", err=True)
         sys.exit(1)
 
+    from dictate.core.cleanup import CleanupConfig
+    from dictate.core.cleanup import cleanup as run_cleanup
+
+    openai_key = os.environ.get("OPENAI_API_KEY", "")
+    cleanup_cfg: CleanupConfig | None = None
+    if openai_key:
+        cleanup_cfg = CleanupConfig(api_key=openai_key)
+
     all_results: dict[str, list[EvalResult]] = {}
     for eng_name in engines_to_run:
         env_var = ENGINE_KEYS[eng_name]
@@ -107,11 +133,34 @@ def eval_cmd(
             click.echo(f"Skipping {eng_name}: {env_var} not set.", err=True)
             continue
         eng = get_engine(eng_name, api_key=api_key)
-        click.echo(f"Running {eng_name}...")
+
+        click.echo(f"Running {eng_name} (raw)...")
         results = run_eval(
             clips=clips, engine=eng, vocab=vocab, cache_dir=cache_dir, cleanup=False,
         )
         all_results[f"{eng_name}_raw"] = results
+
+        if cleanup_cfg is not None:
+            click.echo(f"Running {eng_name} (cleanup)...")
+
+            def make_cleanup_fn(
+                key: str, v: list[str], model: str
+            ) -> Callable[[str], str]:
+                def _fn(text: str) -> str:
+                    return run_cleanup(text, api_key=key, vocab=v, model=model)
+                return _fn
+
+            cleanup_fn = make_cleanup_fn(openai_key, vocab, cleanup_cfg.config["model"])
+            cleanup_results = run_eval(
+                clips=clips,
+                engine=eng,
+                vocab=vocab,
+                cache_dir=cache_dir,
+                cleanup=True,
+                cleanup_config=cleanup_cfg.config,
+                cleanup_fn=cleanup_fn,
+            )
+            all_results[f"{eng_name}_cleanup"] = cleanup_results
 
     if not all_results:
         click.echo("No engines ran successfully.", err=True)
