@@ -23,3 +23,7 @@ eval/cache/
 *.m4a
 
 .DS_Store
+
+# Agent loop marker (see AGENT_LOOP.md)
+.claude/LOOP_ACTIVE
+.claude/settings.local.json
