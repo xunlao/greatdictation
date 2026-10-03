@@ -1,5 +1,11 @@
 # NOTES
 
+## 2026-10-02 (Phase 2)
+- Eval harness: scorer (WER via jiwer, vocab accuracy), cache (JSON per clip/engine/config), harness runner, report formatter.
+- Cache keyed by `{clip_id}_{engine}_{raw|cleanup}.json` — rerunning scoring makes zero API calls.
+- Cost estimates hardcoded per engine for now; prices from provider docs at time of implementation.
+- Added jiwer as runtime dep for WER scoring (uses rapidfuzz under the hood).
+
 ## 2026-10-03
 - Phase 1: Four cloud engines implemented.
 - OpenAI Whisper (`whisper-1`) as baseline; OpenAI's newer `gpt-transcribe` (released July 2026) as the upgrade.
