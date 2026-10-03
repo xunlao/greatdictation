@@ -1,5 +1,15 @@
 # NOTES
 
+## 2026-10-03 (Phase 4)
+- Mac desktop client: hold-to-talk dictation with Right Option key.
+- Quartz CGEventTap for global hotkey (kCGEventFlagsChanged on keycode 61). Requires Accessibility permission.
+- sounddevice for mic recording — bundles PortAudio, clean blocking API.
+- pyobjc NSPasteboard for clipboard save/restore, CGEventPost for synthetic Cmd+V paste.
+- macOS-only deps (sounddevice, pyobjc-framework-Cocoa, pyobjc-framework-Quartz) are optional extras (`pip install .[mac]`), keeping core cross-platform.
+- `dictate listen` command as entry point, with ImportError fallback message for non-Mac platforms.
+- Recordings under 0.3s are discarded (accidental taps).
+- Test mocking: each test fixture must invalidate cached desktop module imports (`monkeypatch.delitem`) so fresh mocks bind correctly.
+
 ## 2026-10-02 (Phase 3)
 - LLM cleanup step using OpenAI chat completions (gpt-4.1-mini by default).
 - System prompt instructs: fix punctuation/caps, remove filler words, correct vocab spelling, never add content.
