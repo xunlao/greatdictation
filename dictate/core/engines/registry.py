@@ -16,12 +16,13 @@ ENGINE_KEYS: dict[str, str] = {
     "openai-transcribe": "OPENAI_API_KEY",
     "deepgram": "DEEPGRAM_API_KEY",
     "groq": "GROQ_API_KEY",
+    "parakeet": "",
 }
 
 AVAILABLE_ENGINES = list(ENGINE_KEYS)
 
 
-def get_engine(name: str, *, api_key: str) -> Engine:
+def get_engine(name: str, *, api_key: str = "") -> Engine:
     match name:
         case "openai-whisper":
             return OpenAIWhisperEngine(api_key=api_key)
@@ -31,5 +32,9 @@ def get_engine(name: str, *, api_key: str) -> Engine:
             return DeepgramEngine(api_key=api_key)
         case "groq":
             return GroqEngine(api_key=api_key)
+        case "parakeet":
+            from dictate.core.engines.parakeet import ParakeetEngine
+
+            return ParakeetEngine()
         case _:
             raise ValueError(f"Unknown engine: {name!r}. Available: {AVAILABLE_ENGINES}")

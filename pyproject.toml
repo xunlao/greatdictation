@@ -20,6 +20,9 @@ server = [
     "python-multipart>=0.0.9",
     "uvicorn[standard]>=0.30",
 ]
+local = [
+    "parakeet-mlx>=0.5",
+]
 
 [project.scripts]
 dictate = "dictate.cli:main"

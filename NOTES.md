@@ -1,5 +1,13 @@
 # NOTES
 
+## 2026-10-03 (Phase 6)
+- Parakeet local engine via parakeet-mlx (mlx-community/parakeet-tdt-0.6b-v3).
+- Lazy-loaded: model downloaded on first transcribe call, reused for subsequent calls.
+- Takes file path not bytes, so audio is written to a temp file before transcription.
+- No API key required — registered in ENGINE_KEYS with empty string env var.
+- parakeet-mlx is an optional extra (`pip install .[local]`).
+- Registry, CLI eval, and server all updated to handle keyless engines.
+
 ## 2026-10-03 (Phase 5)
 - FastAPI server: POST /transcribe with bearer token auth (DICTATE_API_TOKEN env var).
 - Accepts audio file upload, optional engine param. Returns `{"text": "..."}`.
