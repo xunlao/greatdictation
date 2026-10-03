@@ -1,5 +1,14 @@
 # NOTES
 
+## 2026-10-03 (Phase 5)
+- FastAPI server: POST /transcribe with bearer token auth (DICTATE_API_TOKEN env var).
+- Accepts audio file upload, optional engine param. Returns `{"text": "..."}`.
+- Cleanup runs when DICTATE_CLEANUP=1 and OPENAI_API_KEY is set.
+- Server deps (fastapi, python-multipart, uvicorn) are optional extras (`pip install .[server]`).
+- `dictate serve` CLI command starts uvicorn. Health check at GET /health.
+- iOS Shortcut design: Action Button → record audio → POST to server → copy result to clipboard.
+- HTTPBearer returns 401 for missing auth, 403 for wrong token — FastAPI's default behavior.
+
 ## 2026-10-03 (Phase 4)
 - Mac desktop client: hold-to-talk dictation with Right Option key.
 - Quartz CGEventTap for global hotkey (kCGEventFlagsChanged on keycode 61). Requires Accessibility permission.
