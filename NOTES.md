@@ -2,7 +2,7 @@
 
 ## 2026-10-02 (Phase 2)
 - Eval harness: scorer (WER via jiwer, vocab accuracy), cache (JSON per clip/engine/config), harness runner, report formatter.
-- Cache keyed by `{clip_id}_{engine}_{raw|cleanup}.json` — rerunning scoring makes zero API calls.
+- Cache keyed by `{clip_id}_{engine}_{fingerprint}.json` where fingerprint is a 12-char SHA-256 of engine config + vocab + cleanup config — rerunning scoring makes zero API calls; changing any of those invalidates the cache.
 - Cost estimates hardcoded per engine for now; prices from provider docs at time of implementation.
 - Added jiwer as runtime dep for WER scoring (uses rapidfuzz under the hood).
 
