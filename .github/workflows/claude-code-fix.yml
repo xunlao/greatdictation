@@ -1,0 +1,33 @@
+name: Claude Code Fix
+
+# When someone comments "@claude" on a PR, Claude reads the request
+# and pushes a fix commit directly to the branch.
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+concurrency:
+  group: fix-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  fix:
+    if: |
+      contains(github.event.comment.body, '@claude') &&
+      (github.event.issue.pull_request || github.event.pull_request)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
