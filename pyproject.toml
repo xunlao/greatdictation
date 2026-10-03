@@ -9,6 +9,13 @@ dependencies = [
     "jiwer>=3.0",
 ]
 
+[project.optional-dependencies]
+mac = [
+    "sounddevice>=0.5",
+    "pyobjc-framework-Cocoa>=10.0",
+    "pyobjc-framework-Quartz>=10.0",
+]
+
 [project.scripts]
 dictate = "dictate.cli:main"
 

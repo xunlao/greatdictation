@@ -170,3 +170,17 @@ def eval_cmd(
     click.echo(report)
     path = save_report(report, results_dir)
     click.echo(f"\nSaved to {path}")
+
+
+@main.command()
+def listen() -> None:
+    """Start the hold-to-talk desktop client (Mac only)."""
+    try:
+        from dictate.desktop.app import run
+    except ImportError:
+        click.echo(
+            "Desktop dependencies not installed. Run: uv pip install -e '.[mac]'",
+            err=True,
+        )
+        sys.exit(1)
+    run()
