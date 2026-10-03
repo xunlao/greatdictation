@@ -16,6 +16,10 @@ class OpenAIWhisperEngine:
     def __init__(self, *, api_key: str) -> None:
         self._api_key = api_key
 
+    @property
+    def config(self) -> dict[str, str]:
+        return {"model": MODEL, "api_url": API_URL}
+
     def transcribe(self, audio: bytes, *, vocab: list[str]) -> Transcript:
         fields: dict[str, str] = {"model": MODEL}
         if vocab:

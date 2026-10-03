@@ -15,6 +15,10 @@ class DeepgramEngine:
     def __init__(self, *, api_key: str) -> None:
         self._api_key = api_key
 
+    @property
+    def config(self) -> dict[str, str]:
+        return {"model": "nova-3", "api_url": API_URL, "smart_format": "true"}
+
     def transcribe(self, audio: bytes, *, vocab: list[str]) -> Transcript:
         params: list[tuple[str, str]] = [
             ("model", "nova-3"),
