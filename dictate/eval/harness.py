@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from dictate.eval.cache import EvalCache
+from dictate.eval.cache import EvalCache, config_fingerprint
 from dictate.eval.scorer import vocab_accuracy, word_error_rate
 
 if TYPE_CHECKING:
@@ -55,17 +55,26 @@ def run_eval(
     vocab: list[str],
     cache_dir: Path,
     cleanup: bool,
+    cleanup_config: dict[str, str] | None = None,
 ) -> list[EvalResult]:
+    engine_config: dict[str, str] = getattr(engine, "config", {})
+    fp = config_fingerprint(
+        engine_config=engine_config,
+        vocab=vocab,
+        cleanup=cleanup,
+        cleanup_config=cleanup_config,
+    )
+
     cache = EvalCache(cache_dir)
     results: list[EvalResult] = []
 
     for clip in clips:
-        cached = cache.get(clip.clip_id, engine.name, cleanup=cleanup)
+        cached = cache.get(clip.clip_id, engine.name, fp)
         if cached is not None:
             transcript = cached
         else:
             transcript = engine.transcribe(clip.audio, vocab=vocab)
-            cache.put(clip.clip_id, engine.name, cleanup=cleanup, transcript=transcript)
+            cache.put(clip.clip_id, engine.name, fp, transcript=transcript)
 
         wer = word_error_rate(clip.reference_text, transcript.text)
         vacc = vocab_accuracy(clip.reference_text, transcript.text, vocab=vocab)

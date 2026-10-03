@@ -17,6 +17,10 @@ if TYPE_CHECKING:
 class StubEngine:
     name: str = "stub"
 
+    @property
+    def config(self) -> dict[str, str]:
+        return {"model": "stub-v1"}
+
     def transcribe(self, audio: bytes, *, vocab: list[str]) -> Transcript:
         return Transcript(text="the quick brown fox", engine=self.name, latency_ms=42)
 
@@ -80,6 +84,10 @@ def test_run_eval_uses_cache(tmp_path) -> None:  # type: ignore[no-untyped-def]
     class CountingEngine:
         name: str = "counting"
 
+        @property
+        def config(self) -> dict[str, str]:
+            return {"model": "counting-v1"}
+
         def transcribe(self, audio: bytes, *, vocab: list[str]) -> Transcript:
             nonlocal call_count
             call_count += 1
@@ -122,3 +130,39 @@ def test_run_eval_wer_nonzero_for_mismatch(tmp_path) -> None:  # type: ignore[no
         clips=clips, engine=engine, vocab=[], cache_dir=tmp_path / "cache", cleanup=False
     )
     assert results[0].wer > 0.0
+
+
+def test_vocab_change_causes_cache_miss(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    _setup_eval_data(tmp_path / "data")
+    clips = load_clips(tmp_path / "data")
+
+    call_count = 0
+
+    @dataclass
+    class CountingEngine:
+        name: str = "counting"
+
+        @property
+        def config(self) -> dict[str, str]:
+            return {"model": "counting-v1"}
+
+        def transcribe(self, audio: bytes, *, vocab: list[str]) -> Transcript:
+            nonlocal call_count
+            call_count += 1
+            return Transcript(text="the quick brown fox", engine=self.name, latency_ms=10)
+
+    engine = CountingEngine()
+    cache_dir = tmp_path / "cache"
+
+    run_eval(clips=clips, engine=engine, vocab=["fox"], cache_dir=cache_dir, cleanup=False)
+    assert call_count == 2
+
+    call_count = 0
+    run_eval(clips=clips, engine=engine, vocab=["fox"], cache_dir=cache_dir, cleanup=False)
+    assert call_count == 0  # same vocab → cache hit
+
+    call_count = 0
+    run_eval(
+        clips=clips, engine=engine, vocab=["fox", "brown"], cache_dir=cache_dir, cleanup=False
+    )
+    assert call_count == 2  # different vocab → cache miss

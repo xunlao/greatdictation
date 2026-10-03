@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import TYPE_CHECKING
 
@@ -9,17 +10,33 @@ if TYPE_CHECKING:
     from dictate.core.types import Transcript
 
 
+def config_fingerprint(
+    *,
+    engine_config: dict[str, str],
+    vocab: list[str],
+    cleanup: bool,
+    cleanup_config: dict[str, str] | None = None,
+) -> str:
+    blob = {
+        "engine_config": engine_config,
+        "vocab": sorted(vocab),
+        "cleanup": cleanup,
+        "cleanup_config": cleanup_config or {},
+    }
+    raw = json.dumps(blob, sort_keys=True).encode()
+    return hashlib.sha256(raw).hexdigest()[:12]
+
+
 class EvalCache:
     def __init__(self, cache_dir: Path) -> None:
         self._dir = cache_dir
         self._dir.mkdir(parents=True, exist_ok=True)
 
-    def _key_path(self, clip_id: str, engine: str, *, cleanup: bool) -> Path:
-        suffix = "cleanup" if cleanup else "raw"
-        return self._dir / f"{clip_id}_{engine}_{suffix}.json"
+    def _key_path(self, clip_id: str, engine: str, fingerprint: str) -> Path:
+        return self._dir / f"{clip_id}_{engine}_{fingerprint}.json"
 
-    def get(self, clip_id: str, engine: str, *, cleanup: bool) -> Transcript | None:
-        path = self._key_path(clip_id, engine, cleanup=cleanup)
+    def get(self, clip_id: str, engine: str, fingerprint: str) -> Transcript | None:
+        path = self._key_path(clip_id, engine, fingerprint)
         if not path.exists():
             return None
         from dictate.core.types import Transcript as _Transcript
@@ -30,9 +47,9 @@ class EvalCache:
         )
 
     def put(
-        self, clip_id: str, engine: str, *, cleanup: bool, transcript: Transcript
+        self, clip_id: str, engine: str, fingerprint: str, *, transcript: Transcript
     ) -> None:
-        path = self._key_path(clip_id, engine, cleanup=cleanup)
+        path = self._key_path(clip_id, engine, fingerprint)
         data = {
             "text": transcript.text,
             "engine": transcript.engine,
