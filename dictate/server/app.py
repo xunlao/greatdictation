@@ -44,8 +44,8 @@ def _transcribe(
         raise HTTPException(status_code=400, detail=f"Unknown engine: {name}")
 
     env_var = ENGINE_KEYS[name]
-    api_key = os.environ.get(env_var, "")
-    if not api_key:
+    api_key = os.environ.get(env_var, "") if env_var else ""
+    if env_var and not api_key:
         raise HTTPException(status_code=500, detail=f"{env_var} not set")
 
     engine = get_engine(name, api_key=api_key)

@@ -111,7 +111,8 @@ def eval_cmd(
         vocab = [line.strip() for line in vocab_file.read_text().splitlines() if line.strip()]
 
     engines_to_run = list(engine) if engine else [
-        name for name, env_var in ENGINE_KEYS.items() if os.environ.get(env_var)
+        name for name, env_var in ENGINE_KEYS.items()
+        if env_var == "" or os.environ.get(env_var)
     ]
     if not engines_to_run:
         click.echo("No engines selected and no API keys found in environment.", err=True)
@@ -128,8 +129,8 @@ def eval_cmd(
     all_results: dict[str, list[EvalResult]] = {}
     for eng_name in engines_to_run:
         env_var = ENGINE_KEYS[eng_name]
-        api_key = os.environ.get(env_var, "")
-        if not api_key:
+        api_key = os.environ.get(env_var, "") if env_var else ""
+        if env_var and not api_key:
             click.echo(f"Skipping {eng_name}: {env_var} not set.", err=True)
             continue
         eng = get_engine(eng_name, api_key=api_key)
