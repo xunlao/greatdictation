@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v6
+      # Plain `uv sync` on purpose: optional Mac-only extras (parakeet-mlx)
+      # are not installed, since they won't build on Linux runners.
+      - run: uv sync
+      - run: uv run ruff check .
+      # Live engine tests skip themselves when API keys are missing,
+      # so no provider secrets are needed here.
+      - run: uv run pytest

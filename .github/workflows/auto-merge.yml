@@ -1,0 +1,22 @@
+name: Auto-merge agent PRs
+
+# Turns on GitHub auto-merge for PRs from Claude's branches (claude/...).
+# GitHub then merges each one by itself once the required checks pass.
+# Needs "Allow auto-merge" on in the repo settings and a branch rule on main
+# that requires the CI "test" check.
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+jobs:
+  enable-auto-merge:
+    if: startsWith(github.head_ref, 'claude/') && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
