@@ -7,6 +7,7 @@ from dictate.eval.cache import EvalCache, config_fingerprint
 from dictate.eval.scorer import vocab_accuracy, word_error_rate
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
     from dictate.core.types import Engine
@@ -56,6 +57,7 @@ def run_eval(
     cache_dir: Path,
     cleanup: bool,
     cleanup_config: dict[str, str] | None = None,
+    cleanup_fn: Callable[[str], str] | None = None,
 ) -> list[EvalResult]:
     engine_config: dict[str, str] = getattr(engine, "config", {})
     fp = config_fingerprint(
@@ -74,6 +76,15 @@ def run_eval(
             transcript = cached
         else:
             transcript = engine.transcribe(clip.audio, vocab=vocab)
+            if cleanup and cleanup_fn is not None:
+                from dictate.core.types import Transcript
+
+                cleaned_text = cleanup_fn(transcript.text)
+                transcript = Transcript(
+                    text=cleaned_text,
+                    engine=transcript.engine,
+                    latency_ms=transcript.latency_ms,
+                )
             cache.put(clip.clip_id, engine.name, fp, transcript=transcript)
 
         wer = word_error_rate(clip.reference_text, transcript.text)
