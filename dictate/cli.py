@@ -184,3 +184,23 @@ def listen() -> None:
         )
         sys.exit(1)
     run()
+
+
+@main.command()
+@click.option("--host", default="0.0.0.0", help="Bind address.")
+@click.option("--port", default=8000, type=int, help="Port to listen on.")
+def serve(host: str, port: int) -> None:
+    """Start the transcription API server."""
+    try:
+        import uvicorn
+    except ImportError:
+        click.echo(
+            "Server dependencies not installed. Run: uv pip install -e '.[server]'",
+            err=True,
+        )
+        sys.exit(1)
+
+    from dictate.server.app import create_app
+
+    app = create_app()
+    uvicorn.run(app, host=host, port=port)
