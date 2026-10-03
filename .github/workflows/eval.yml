@@ -1,0 +1,58 @@
+name: Eval
+
+on:
+  workflow_dispatch:
+    inputs:
+      engines:
+        description: "Comma-separated engines to run (blank = all with keys)"
+        required: false
+        default: ""
+
+concurrency:
+  group: eval
+  cancel-in-progress: true
+
+jobs:
+  eval:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v6
+
+      - run: uv sync
+
+      - name: Check for eval clips
+        run: |
+          count=$(find eval/data -name "*.wav" 2>/dev/null | wc -l | tr -d ' ')
+          if [ "$count" -eq 0 ]; then
+            echo "::error::No eval clips in eval/data/. Record some with 'dictate record-clip'."
+            exit 1
+          fi
+          echo "Found $count clip(s)"
+
+      - name: Run eval
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          args=""
+          if [ -n "${{ github.event.inputs.engines }}" ]; then
+            IFS=',' read -ra ENGINES <<< "${{ github.event.inputs.engines }}"
+            for e in "${ENGINES[@]}"; do
+              args="$args --engine $(echo $e | xargs)"
+            done
+          fi
+          if [ -f eval/vocab.txt ]; then
+            args="$args --vocab-file eval/vocab.txt"
+          fi
+          uv run dictate eval $args
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: eval/results/

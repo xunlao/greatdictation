@@ -173,6 +173,73 @@ def eval_cmd(
     click.echo(f"\nSaved to {path}")
 
 
+@main.command(name="clips")
+@click.option(
+    "--data-dir",
+    type=click.Path(path_type=Path),
+    default=Path("eval/data"),
+    help="Directory containing eval clips.",
+)
+def list_clips(data_dir: Path) -> None:
+    """List eval clips in the data directory."""
+    if not data_dir.exists():
+        click.echo(f"No clips found — {data_dir} does not exist.", err=True)
+        return
+
+    pairs = sorted(
+        p.stem for p in data_dir.glob("*.wav") if p.with_suffix(".txt").exists()
+    )
+    if not pairs:
+        click.echo(f"No clips found in {data_dir}. Record some with: dictate record-clip")
+        return
+
+    click.echo(f"{len(pairs)} clip(s) in {data_dir}:\n")
+    for clip_id in pairs:
+        txt = (data_dir / f"{clip_id}.txt").read_text().strip()
+        preview = txt[:60] + "..." if len(txt) > 60 else txt
+        click.echo(f"  {clip_id}: {preview}")
+
+
+@main.command(name="record-clip")
+@click.option(
+    "--data-dir",
+    type=click.Path(path_type=Path),
+    default=Path("eval/data"),
+    help="Directory to save the clip.",
+)
+@click.option("--name", required=True, help="Clip ID (no extension).")
+@click.option("--duration", default=5, type=int, help="Recording duration in seconds.")
+@click.option("--sample-rate", default=16000, type=int, help="Sample rate in Hz.")
+def record_clip(data_dir: Path, name: str, duration: int, sample_rate: int) -> None:
+    """Record an eval clip from the microphone."""
+    try:
+        from dictate.desktop.recorder import record_audio
+    except ImportError:
+        click.echo(
+            "Recording requires sounddevice. Run: uv pip install -e '.[mac]'",
+            err=True,
+        )
+        sys.exit(1)
+
+    data_dir.mkdir(parents=True, exist_ok=True)
+    wav_path = data_dir / f"{name}.wav"
+    txt_path = data_dir / f"{name}.txt"
+
+    if wav_path.exists():
+        click.echo(f"Error: {wav_path} already exists. Pick a different name.", err=True)
+        sys.exit(1)
+
+    click.echo(f"Recording {duration}s at {sample_rate}Hz... speak now!")
+    audio = record_audio(duration_s=float(duration), sample_rate=sample_rate)
+    wav_path.write_bytes(audio)
+    click.echo(f"Saved {wav_path}")
+
+    reference = click.prompt("Type what you said (reference text)")
+    txt_path.write_text(reference.strip() + "\n")
+    click.echo(f"Saved {txt_path}")
+    click.echo(f"\nClip '{name}' ready. Run 'dictate eval' to score it.")
+
+
 @main.command()
 def listen() -> None:
     """Start the hold-to-talk desktop client (Mac only)."""
